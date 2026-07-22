@@ -102,10 +102,10 @@ export function SiteHeader({ categories }: { categories: StoreCategory[] }) {
               </Link>
             ))}
             <a
-              href={wpPages.institucional}
+              href={wpPages.quemSomos}
               className="ml-auto hidden whitespace-nowrap text-xs font-semibold text-ink uppercase lg:inline"
             >
-              Institucional
+              Quem Somos
             </a>
           </nav>
         </div>

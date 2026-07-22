@@ -13,11 +13,16 @@ export const Route = createFileRoute("/categoria/$slug")({
   }),
   loaderDeps: ({ search }) => ({ page: search.page }),
   loader: async ({ params, deps }) => {
-    const category = await getCategoryBySlug({ data: params.slug });
+    const category = await getCategoryBySlug({ data: params.slug }).catch(() => null);
     if (!category) throw notFound();
     const [data, categories] = await Promise.all([
-      getProductsByCategory({ data: { slug: params.slug, page: deps.page, categoryId: category.id } }),
-      getCategories(),
+      getProductsByCategory({ data: { slug: params.slug, page: deps.page, categoryId: category.id } }).catch(() => ({
+        products: [],
+        page: 1,
+        totalPages: 1,
+        total: 0,
+      })),
+      getCategories().catch(() => []),
     ]);
     return { category, ...data, categories };
   },

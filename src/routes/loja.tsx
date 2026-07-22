@@ -15,8 +15,13 @@ export const Route = createFileRoute("/loja")({
   loaderDeps: ({ search }) => ({ page: search.page, q: search.q }),
   loader: async ({ deps }) => {
     const [data, categories] = await Promise.all([
-      getAllProducts({ data: { page: deps.page, search: deps.q } }),
-      getCategories(),
+      getAllProducts({ data: { page: deps.page, search: deps.q } }).catch(() => ({
+        products: [],
+        page: 1,
+        totalPages: 1,
+        total: 0,
+      })),
+      getCategories().catch(() => []),
     ]);
     return { ...data, categories };
   },

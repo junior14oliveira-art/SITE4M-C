@@ -31,10 +31,12 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: async () => {
+    // Resiliente: se a API do WooCommerce estiver fora do ar, a home continua
+    // carregando (com seções vazias) em vez de quebrar o site inteiro.
     const [featured, recent, categories] = await Promise.all([
-      getFeaturedProducts(),
-      getRecentProducts(),
-      getCategories(),
+      getFeaturedProducts().catch(() => []),
+      getRecentProducts().catch(() => []),
+      getCategories().catch(() => []),
     ]);
     // Se não houver produtos marcados como "destaque" no WooCommerce, usa os mais recentes.
     const recommended = featured.length > 0 ? featured : recent.slice(0, 4);
@@ -91,50 +93,68 @@ function Home() {
             </div>
 
             <div className="col-span-12 flex flex-col gap-6 lg:col-span-4">
-              <div className="relative flex-1 overflow-hidden rounded-3xl bg-accent p-8 ring-1 ring-black/5">
+              {/* Card 1 — Monitores (claro, destaque ciano) */}
+              <Link
+                to="/categoria/$slug"
+                params={{ slug: "monitores" }}
+                className="group relative flex-1 overflow-hidden rounded-3xl bg-gradient-to-br from-accent to-background p-8 ring-1 ring-primary/10 transition-all duration-300 hover:ring-primary/30 hover:shadow-xl hover:shadow-primary/10"
+              >
+                {/* brilho suave atrás do produto */}
+                <div className="absolute -right-6 -bottom-6 size-44 rounded-full bg-primary/15 blur-2xl transition-opacity duration-300 group-hover:opacity-80" />
                 <img
                   src={prodMonitor}
                   alt="Monitores renovados"
                   loading="lazy"
                   width={700}
                   height={700}
-                  className="absolute -right-8 -bottom-8 h-40 w-40 object-contain"
+                  className="absolute -right-5 -bottom-4 h-44 w-44 object-contain drop-shadow-xl transition-transform duration-500 group-hover:-translate-y-1 group-hover:scale-105"
                 />
-                <span className="text-[10px] font-bold tracking-widest text-primary uppercase">
-                  Oferta exclusiva
-                </span>
-                <h2 className="mt-3 max-w-[14ch] text-xl leading-tight font-semibold text-accent-foreground">
-                  Monitores renovados
-                </h2>
-                <Link to="/categoria/$slug" params={{ slug: "monitores" }} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-4">
-                  Aproveitar
-                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-              </div>
-              <div className="relative flex-1 overflow-hidden rounded-3xl bg-secondary p-8 ring-1 ring-black/5">
+                <div className="relative">
+                  <span className="text-[10px] font-bold tracking-widest text-primary uppercase">
+                    Oferta exclusiva
+                  </span>
+                  <h2 className="mt-3 max-w-[10ch] text-2xl leading-tight font-semibold text-accent-foreground">
+                    Monitores renovados
+                  </h2>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                    Aproveitar
+                    <svg className="size-3.5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </span>
+                </div>
+              </Link>
+
+              {/* Card 2 — Servidores (escuro, datacenter) */}
+              <Link
+                to="/categoria/$slug"
+                params={{ slug: "servidores" }}
+                className="group relative flex-1 overflow-hidden rounded-3xl bg-ink p-8 ring-1 ring-black/5 transition-all duration-300 hover:shadow-xl hover:shadow-ink/20"
+              >
+                <div className="absolute -right-8 -bottom-8 size-44 rounded-full bg-primary/20 blur-3xl transition-opacity duration-300 group-hover:opacity-90" />
                 <img
                   src={prodServer}
                   alt="Servidores renovados"
                   loading="lazy"
                   width={700}
                   height={700}
-                  className="absolute -right-6 -bottom-6 h-40 w-40 object-contain opacity-90"
+                  className="absolute -right-5 -bottom-4 h-44 w-44 object-contain opacity-95 drop-shadow-2xl transition-transform duration-500 group-hover:-translate-y-1 group-hover:scale-105"
                 />
-                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                  Linha datacenter
-                </span>
-                <h2 className="mt-3 max-w-[14ch] text-xl leading-tight font-semibold text-ink">
-                  Servidores para missão crítica
-                </h2>
-                <Link to="/categoria/$slug" params={{ slug: "servidores" }} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline underline-offset-4">
-                  Explorar linha Pro
-                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-              </div>
+                <div className="relative">
+                  <span className="text-[10px] font-bold tracking-widest text-primary uppercase">
+                    Linha datacenter
+                  </span>
+                  <h2 className="mt-3 max-w-[12ch] text-2xl leading-tight font-semibold text-background">
+                    Servidores para missão crítica
+                  </h2>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-background">
+                    Explorar linha Pro
+                    <svg className="size-3.5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </span>
+                </div>
+              </Link>
             </div>
           </div>
         </section>

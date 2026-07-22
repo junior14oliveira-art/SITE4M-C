@@ -8,16 +8,16 @@ import { wpAddToCartUrl, CONTACT } from "@/lib/site-config";
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ params }) => {
-    const product = await getProductBySlug({ data: params.slug });
+    const product = await getProductBySlug({ data: params.slug }).catch(() => null);
     if (!product) throw notFound();
+    const allCats = await getCategories().catch(() => []);
     const categoryId = product.categories[0]
-      ? (await getCategories()).find((c) => c.slug === product.categories[0].slug)?.id
+      ? allCats.find((c) => c.slug === product.categories[0].slug)?.id
       : undefined;
-    const [related, categories] = await Promise.all([
-      categoryId ? getRelatedProducts({ data: { categoryId, excludeId: product.id } }) : Promise.resolve([]),
-      getCategories(),
-    ]);
-    return { product, related, categories };
+    const related = categoryId
+      ? await getRelatedProducts({ data: { categoryId, excludeId: product.id } }).catch(() => [])
+      : [];
+    return { product, related, categories: allCats };
   },
   head: ({ loaderData }) => ({
     meta: [
