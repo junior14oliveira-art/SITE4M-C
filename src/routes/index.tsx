@@ -15,16 +15,16 @@ import { SiteFooter } from "@/components/store/site-footer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "4M&C Informática — Notebooks e Computadores Renovados com Garantia" },
+      { title: "Notebook Seminovo e Computador Usado com Garantia | 4M&C Informática" },
       {
         name: "description",
         content:
-          "Notebooks Dell e Lenovo, desktops, servidores e monitores renovados com garantia. Suporte especializado, revisão técnica completa e entrega para todo o Brasil.",
+          "Compre notebook Dell, Lenovo e HP seminovos com garantia na 4M&C Informática. Computadores, servidores e monitores corporativos revisados. Entrega para todo o Brasil.",
       },
-      { property: "og:title", content: "4M&C Informática — Hardware Corporativo Renovado" },
+      { property: "og:title", content: "Notebook Seminovo e Computador Usado com Garantia | 4M&C Informática" },
       {
         property: "og:description",
-        content: "Equipamentos renovados com garantia. PIX com desconto, parcelamento e suporte B2B.",
+        content: "Equipamentos corporativos seminovos com garantia. PIX com desconto, parcelamento e suporte B2B.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

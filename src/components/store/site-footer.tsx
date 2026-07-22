@@ -1,6 +1,5 @@
 import logo4mc from "@/assets/logo-4mc.png";
 import type { StoreCategory } from "@/lib/woocommerce.server";
-import { wpPages } from "@/lib/site-config";
 
 export function SiteFooter({ categories }: { categories: StoreCategory[] }) {
   return (
@@ -18,17 +17,17 @@ export function SiteFooter({ categories }: { categories: StoreCategory[] }) {
             {
               title: "Institucional",
               links: [
-                { label: "Quem Somos", url: wpPages.quemSomos },
-                { label: "Política de Privacidade", url: wpPages.privacidade },
-                { label: "Termos de Uso", url: wpPages.termos },
+                { label: "Quem Somos", url: "/institucional" },
+                { label: "Política de Privacidade", url: "/privacidade" },
+                { label: "Termos de Uso", url: "/termos" },
               ],
             },
             {
               title: "Atendimento",
               links: [
-                { label: "Contato", url: wpPages.contato },
-                { label: "Política de Envio e Entrega", url: wpPages.envio },
-                { label: "Trocas e devoluções", url: wpPages.trocas },
+                { label: "Contato", url: "/contato" },
+                { label: "Política de Envio e Entrega", url: "/envio" },
+                { label: "Trocas e devoluções", url: "/trocas" },
               ],
             },
             {

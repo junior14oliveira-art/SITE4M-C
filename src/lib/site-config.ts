@@ -43,3 +43,15 @@ export const CONTACT = {
   phone: "(11) 3855-1360",
   email: "contato@4mcinformatica.com",
 };
+
+/** Dados oficiais da empresa (confirmados pelo usuário) — usados nas páginas legais. */
+export const COMPANY = {
+  legalName: "4M&C Informática LTDA",
+  brand: "4M&C Informática",
+  cnpj: "27.192.596/0001-25",
+  address: "Av. Pedro de Souza Lopes, 799 - Vila Galvão, Guarulhos/SP - CEP 07074-000",
+  city: "Guarulhos/SP",
+  email: "contato@4mcinformatica.com",
+  phone: "(11) 3855-1360",
+  hours: "Segunda a sexta, das 9h às 18h",
+};

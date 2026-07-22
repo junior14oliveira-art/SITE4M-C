@@ -20,6 +20,22 @@ function wcUrl(path: string, params: Record<string, string> = {}) {
   return `${WC_BASE}/wp-json/wc/v3${path}?${qs.toString()}`;
 }
 
+/**
+ * Fetch com timeout de 10s — se a API do WooCommerce travar, a requisição não
+ * fica pendurada indefinidamente (protege o serverless da Vercel). Lança erro
+ * em caso de falha; os loaders tratam com .catch() para degradar sem quebrar.
+ */
+async function wcFetch(url: string): Promise<Response> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!res.ok) throw new Error(`WooCommerce API ${res.status}`);
+  return res;
+}
+
+/** Limita texto de busca/filtro para evitar abuso (bot/spam) na API. */
+function sanitize(v: string | undefined, max = 100): string {
+  return (v || "").toString().slice(0, max);
+}
+
 export type WCProduct = {
   id: number;
   name: string;
@@ -104,16 +120,21 @@ function mapProductDetail(p: WCProduct): StoreProductDetail {
 
 /** Produtos em destaque (marcados como "featured" no WooCommerce). */
 export const getFeaturedProducts = createServerFn({ method: "GET" }).handler(async () => {
-  const res = await fetch(wcUrl("/products", { featured: "true", per_page: "8", status: "publish" }));
-  if (!res.ok) throw new Error(`Falha ao buscar destaques: ${res.status}`);
+  const res = await wcFetch(wcUrl("/products", { featured: "true", per_page: "8", status: "publish" }));
   const data: WCProduct[] = await res.json();
   return data.map(mapProduct);
 });
 
 /** Produtos mais recentes (fallback caso não haja "featured" suficientes). */
 export const getRecentProducts = createServerFn({ method: "GET" }).handler(async () => {
-  const res = await fetch(wcUrl("/products", { per_page: "8", orderby: "date", order: "desc", status: "publish" }));
-  if (!res.ok) throw new Error(`Falha ao buscar produtos recentes: ${res.status}`);
+  const res = await wcFetch(wcUrl("/products", { per_page: "8", orderby: "date", order: "desc", status: "publish" }));
+  const data: WCProduct[] = await res.json();
+  return data.map(mapProduct);
+});
+
+/** Produtos em promoção (preço de oferta ativo) — para a faixa de Ofertas. */
+export const getSaleProducts = createServerFn({ method: "GET" }).handler(async () => {
+  const res = await wcFetch(wcUrl("/products", { on_sale: "true", per_page: "8", status: "publish" }));
   const data: WCProduct[] = await res.json();
   return data.map(mapProduct);
 });
@@ -122,8 +143,7 @@ export type StoreCategory = { id: number; name: string; slug: string; image: str
 
 /** Categorias reais da loja, com contagem de produtos > 0. */
 export const getCategories = createServerFn({ method: "GET" }).handler(async () => {
-  const res = await fetch(wcUrl("/products/categories", { per_page: "20", hide_empty: "true" }));
-  if (!res.ok) throw new Error(`Falha ao buscar categorias: ${res.status}`);
+  const res = await wcFetch(wcUrl("/products/categories", { per_page: "20", hide_empty: "true" }));
   const data: Array<{ id: number; name: string; slug: string; description: string; image: { src: string } | null }> =
     await res.json();
   return data
@@ -142,10 +162,9 @@ export const getCategories = createServerFn({ method: "GET" }).handler(async () 
 
 /** Uma categoria especifica pelo slug (para o cabecalho da pagina de categoria). */
 export const getCategoryBySlug = createServerFn({ method: "GET" })
-  .validator((slug: string) => slug)
+  .validator((slug: string) => sanitize(slug))
   .handler(async ({ data: slug }) => {
-    const res = await fetch(wcUrl("/products/categories", { slug }));
-    if (!res.ok) throw new Error(`Falha ao buscar categoria: ${res.status}`);
+    const res = await wcFetch(wcUrl("/products/categories", { slug }));
     const list: Array<{ id: number; name: string; slug: string; description: string; image: { src: string } | null }> =
       await res.json();
     const c = list[0];
@@ -162,36 +181,49 @@ function pageMeta(res: Response, page: number): { totalPages: number; total: num
   };
 }
 
-/** Catálogo completo, paginado (página da Loja). */
+/** Ordenações aceitas na loja. */
+export type SortOption = "" | "price-asc" | "price-desc" | "rating";
+
+function applySort(params: Record<string, string>, sort?: string) {
+  if (sort === "price-asc") { params.orderby = "price"; params.order = "asc"; }
+  else if (sort === "price-desc") { params.orderby = "price"; params.order = "desc"; }
+  else if (sort === "rating") { params.orderby = "rating"; params.order = "desc"; }
+  else { params.orderby = "date"; params.order = "desc"; }
+}
+
+/** Catálogo completo, paginado + busca + ordenação (página da Loja). */
 export const getAllProducts = createServerFn({ method: "GET" })
-  .validator((input: { page: number; search?: string }) => input)
+  .validator((input: { page: number; search?: string; sort?: string }) => input)
   .handler(async ({ data }) => {
     const params: Record<string, string> = { per_page: "12", page: String(data.page), status: "publish" };
-    if (data.search) params.search = data.search;
-    const res = await fetch(wcUrl("/products", params));
-    if (!res.ok) throw new Error(`Falha ao buscar produtos: ${res.status}`);
+    if (data.search) params.search = sanitize(data.search);
+    applySort(params, data.sort);
+    const res = await wcFetch(wcUrl("/products", params));
     const products: WCProduct[] = await res.json();
     return { products: products.map(mapProduct), page: data.page, ...pageMeta(res, data.page) } satisfies PaginatedProducts;
   });
 
-/** Produtos de uma categoria, paginado. */
+/** Produtos de uma categoria, paginado + ordenação. */
 export const getProductsByCategory = createServerFn({ method: "GET" })
-  .validator((input: { slug: string; page: number; categoryId: number }) => input)
+  .validator((input: { slug: string; page: number; categoryId: number; sort?: string }) => input)
   .handler(async ({ data }) => {
-    const res = await fetch(
-      wcUrl("/products", { category: String(data.categoryId), per_page: "12", page: String(data.page), status: "publish" })
-    );
-    if (!res.ok) throw new Error(`Falha ao buscar produtos da categoria: ${res.status}`);
+    const params: Record<string, string> = {
+      category: String(data.categoryId),
+      per_page: "12",
+      page: String(data.page),
+      status: "publish",
+    };
+    applySort(params, data.sort);
+    const res = await wcFetch(wcUrl("/products", params));
     const products: WCProduct[] = await res.json();
     return { products: products.map(mapProduct), page: data.page, ...pageMeta(res, data.page) } satisfies PaginatedProducts;
   });
 
 /** Detalhe completo de um produto pelo slug (página de produto). */
 export const getProductBySlug = createServerFn({ method: "GET" })
-  .validator((slug: string) => slug)
+  .validator((slug: string) => sanitize(slug))
   .handler(async ({ data: slug }) => {
-    const res = await fetch(wcUrl("/products", { slug }));
-    if (!res.ok) throw new Error(`Falha ao buscar produto: ${res.status}`);
+    const res = await wcFetch(wcUrl("/products", { slug }));
     const list: WCProduct[] = await res.json();
     const p = list[0];
     return p ? mapProductDetail(p) : null;
@@ -201,10 +233,9 @@ export const getProductBySlug = createServerFn({ method: "GET" })
 export const getRelatedProducts = createServerFn({ method: "GET" })
   .validator((input: { categoryId: number; excludeId: number }) => input)
   .handler(async ({ data }) => {
-    const res = await fetch(
+    const res = await wcFetch(
       wcUrl("/products", { category: String(data.categoryId), per_page: "5", exclude: String(data.excludeId), status: "publish" })
     );
-    if (!res.ok) throw new Error(`Falha ao buscar relacionados: ${res.status}`);
     const products: WCProduct[] = await res.json();
     return products.slice(0, 4).map(mapProduct);
   });

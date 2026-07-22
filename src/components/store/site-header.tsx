@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import logo4mc from "@/assets/logo-4mc.png";
 import type { StoreCategory } from "@/lib/woocommerce.server";
-import { wpAccountUrl, wpCartUrl, wpPages } from "@/lib/site-config";
+import { wpAccountUrl, wpCartUrl } from "@/lib/site-config";
 
 export function SiteHeader({ categories }: { categories: StoreCategory[] }) {
   const navigate = useNavigate();
@@ -101,12 +101,13 @@ export function SiteHeader({ categories }: { categories: StoreCategory[] }) {
                 {c.name}
               </Link>
             ))}
-            <a
-              href={wpPages.quemSomos}
+            <Link
+              to="/institucional"
               className="ml-auto hidden whitespace-nowrap text-xs font-semibold text-ink uppercase lg:inline"
+              activeProps={{ className: "text-primary" }}
             >
               Quem Somos
-            </a>
+            </Link>
           </nav>
         </div>
       </header>
