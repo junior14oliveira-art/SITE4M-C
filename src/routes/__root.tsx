@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { gtmEnabled, gtmHeadScript, gtmNoscriptSrc, trackPageview } from "../lib/analytics";
 
 function NotFoundComponent() {
   return (
@@ -103,9 +104,16 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
+        {/* Google Tag Manager — só injeta se VITE_GTM_ID estiver configurada */}
+        {gtmEnabled() && <script dangerouslySetInnerHTML={{ __html: gtmHeadScript() }} />}
         <HeadContent />
       </head>
       <body>
+        {gtmEnabled() && (
+          <noscript>
+            <iframe src={gtmNoscriptSrc()} height="0" width="0" style={{ display: "none", visibility: "hidden" }} />
+          </noscript>
+        )}
         {children}
         <Scripts />
       </body>
@@ -115,6 +123,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  // Rastreia navegação SPA: cada mudança de rota vira um pageview no GTM/GA4.
+  useEffect(() => {
+    const unsub = router.subscribe("onResolved", () => {
+      trackPageview(router.state.location.pathname + router.state.location.search, document.title);
+    });
+    return () => unsub();
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>
