@@ -1,0 +1,71 @@
+# ==============================================================================
+# 4M&C Informática — Configurações de Segurança e Roteamento Apache (.htaccess)
+# ==============================================================================
+
+# Desativa a listagem pública de diretórios
+Options -Indexes -MultiViews
+
+# Força codificação UTF-8
+AddDefaultCharset UTF-8
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # --------------------------------------------------------------------------
+    # 1. BLOQUEIO DE ACESSO ADMINISTRATIVO TEMPORÁRIO (Painel /jrdev1)
+    # --------------------------------------------------------------------------
+    RewriteRule ^jrdev1(/.*)?$ - [F,L,NC]
+
+    # --------------------------------------------------------------------------
+    # 2. BLOQUEIO DE SCRIPTS E ARQUIVOS SENSÍVEIS (Proteção Imediata contra Brechas)
+    # --------------------------------------------------------------------------
+    # Bloqueia execução ou leitura de scripts vulneráveis conhecidos
+    RewriteRule ^(banner-proxy|content-proxy|track)\.php$ - [F,L,NC]
+
+    # Bloqueia arquivos de ambiente, git, dados e configurações críticas
+    RewriteRule ^(\.git|\.env|composer\.(json|lock)|package(-lock)?\.json|bun\.lock|tsconfig\.json|\.htaccess) - [F,L,NC]
+    RewriteRule \.(sql|bak|backup|old|temp|tmp|log|ini|sh|bat)$ - [F,L,NC]
+
+    # --------------------------------------------------------------------------
+    # 3. ROTEAMENTO SPA (React / TanStack Start)
+    # --------------------------------------------------------------------------
+    # Não redireciona se o arquivo ou diretório físico realmente existir
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Redireciona todas as outras rotas para o index.html da SPA
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 4. CABEÇALHOS HTTP DE SEGURANÇA E PROTEÇÃO CONTRA ATAQUES
+# ------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    # Impede que o site seja incorporado em iframes de outros domínios (Anti-Clickjacking)
+    Header set X-Frame-Options "SAMEORIGIN"
+
+    # Previne sniffing de MIME Type
+    Header set X-Content-Type-Options "nosniff"
+
+    # Ativa proteção XSS em navegadores antigos
+    Header set X-XSS-Protection "1; mode=block"
+
+    # Política de Referrer segura
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Força conexões HTTPS (HSTS) por 1 ano
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+
+    # Remove identificador do servidor para evitar finger-printing
+    Header unset X-Powered-By
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 5. BLOQUEIO DE ARQUIVOS COM EXTENSÃO PERIGOSA VIA FILES
+# ------------------------------------------------------------------------------
+<FilesMatch "(banner-proxy|content-proxy|track)\.php$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

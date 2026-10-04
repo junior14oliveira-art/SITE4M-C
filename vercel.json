@@ -14,5 +14,17 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/jrdev1(.*)",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/(.*)\\.php",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
